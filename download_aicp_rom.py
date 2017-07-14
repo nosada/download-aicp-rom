@@ -68,7 +68,6 @@ def download_aicp_rom(download_url, saved_to_dir):
 def verify_downloaded_aicp_rom(file_location, checksum):
     with open(file_location, 'rb') as file_object:
         md5sum = hash_bytestr_iter(file_object, hashlib.md5(), as_hex_str=True)
-    print(md5sum)
     if checksum != md5sum:
         sys.stderr.write("downloaded ROM seems to be broken\n")
         sys.stderr.write("remove downloaded ROM\n")
