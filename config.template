@@ -1,0 +1,8 @@
+[device]
+# comma-separated device list must be given to device_name
+# ex. device_name = mako,bullhead,flounder
+device_name =
+
+[location]
+# saved_to_dir is where downloaded ROM saved
+saved_to_dir = /home/nosada/aicp/
