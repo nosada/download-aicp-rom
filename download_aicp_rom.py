@@ -16,10 +16,10 @@ from bs4 import BeautifulSoup
 class DownloadAICPRom(object):
     """Download AICP ROM for specified device(s)"""
 
-    def __init__(self, device_name=None, saved_to_dir=None, conf_name=None):
+    def __init__(self, device_name=None, saved_to_dir=None, conf_name=None,
+                 remove=False):
         """Constructor: set device_name and saved_to_dir if given.
         If conf_name given, read config and set device(s) and saved_to_dir."""
-
         if device_name and saved_to_dir:
             self.device = device_name
             self.saved_to_dir = saved_to_dir
@@ -32,9 +32,16 @@ class DownloadAICPRom(object):
             # get saved_to_dir
             section = "location"
             self.saved_to_dir = conf.get(section, "saved_to_dir")
+        if remove:
+            self.remove = remove
+        else:
+            self.remove = False
 
     def do_task(self):
         """Download AICP ROM"""
+        if self.remove:
+            self.remove_old_rom()
+
         if isinstance(self.device, str):
             self.do_download_aicp_rom(self.device)
         elif isinstance(self.device, list):
@@ -43,7 +50,6 @@ class DownloadAICPRom(object):
 
     def do_download_aicp_rom(self, device):
         """Download AICP ROM for given device"""
-
         download_url, checksum = self.get_aicp_rom_info(device)
         print("URL: {u}".format(u=download_url))
         print("checksum: {c}".format(c=checksum))
@@ -63,7 +69,6 @@ class DownloadAICPRom(object):
         using given hasher.
         If as_hex_str set, return hexadecimal string instead of
         default plain string."""
-
         for block in bytes_iter:
             hasher.update(block)
         return hasher.hexdigest() if as_hex_str else hasher.digest()
@@ -71,7 +76,6 @@ class DownloadAICPRom(object):
     @staticmethod
     def file_as_blockiter(file_object, blocksize=65536):
         """Convert given file_object (file object, as you see) as iterator"""
-
         with file_object:
             block = file_object.read(blocksize)
             while block:
@@ -82,7 +86,6 @@ class DownloadAICPRom(object):
     def get_aicp_rom_info(device_name):
         """Download AICP ROM list for given device_name, then return
         'lastest' ROM info, which are URL and checksum"""
-
         aicp_base_url = "http://dwnld.aicp-rom.com"
         query_string = "?device={device}"
 
@@ -113,7 +116,6 @@ class DownloadAICPRom(object):
     def download_aicp_rom(download_url, saved_to_dir):
         """Download ROM file from given download_url and
         store to saved_to_dir"""
-
         file_name = os.path.basename(download_url)
         file_location = os.path.join(saved_to_dir, file_name)
         response = requests.get(download_url, stream=True)
@@ -129,7 +131,6 @@ class DownloadAICPRom(object):
         """Generate checksum for file in file_location and compare it with
         given checksum.
         If both matches, return file_location. Otherwise return None."""
-
         with open(file_location, 'rb') as file_object:
             md5sum = self.hash_bytestr_iter(file_object,
                                             hashlib.md5(),
@@ -140,6 +141,13 @@ class DownloadAICPRom(object):
             os.remove(file_location)
             return None
         return file_location
+
+    def remove_old_rom(self):
+        """Remove existed ROM(s) in self.saved_to_dir"""
+        for file_name in os.listdir(self.saved_to_dir):
+            old_rom = os.path.join(self.saved_to_dir, file_name)
+            os.remove(old_rom)
+            sys.stdout.write("{r} is removed\n".format(r=old_rom))
 
 
 if __name__ == "__main__":
@@ -163,18 +171,26 @@ if __name__ == "__main__":
         dest="config",
         type=str,
         help=("location of config file "
-              "required when --device-name and --saved-to-dir "
-              "are not specified"))
+              "(required when --device-name and --saved-to-dir "
+              "are not specified)"))
+    PARSER.add_argument(
+        "--remove-old-rom",
+        dest="remove_old_rom",
+        action="store_true",
+        help=("if specified, remove all of ROM(s) in saved-to directory"))
 
     ARGS = PARSER.parse_args()
+    REMOVE_OLD_ROM = ARGS.remove_old_rom
     if ARGS.device_name and ARGS.saved_to_dir:
         DEVICE_NAME = ARGS.device_name
         SAVED_TO_DIR = ARGS.saved_to_dir
         WORKER = DownloadAICPRom(device_name=DEVICE_NAME,
-                                 saved_to_dir=SAVED_TO_DIR)
+                                 saved_to_dir=SAVED_TO_DIR,
+                                 remove=REMOVE_OLD_ROM)
     elif ARGS.config:
         CONF = ARGS.config
-        WORKER = DownloadAICPRom(conf_name=CONF)
+        WORKER = DownloadAICPRom(conf_name=CONF,
+                                 remove=REMOVE_OLD_ROM)
     else:
         sys.stderr.write(("Invalid or missing arguments. "
                           "Check help of this script\n"))
