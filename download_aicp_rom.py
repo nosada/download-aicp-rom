@@ -8,6 +8,8 @@ import errno
 import hashlib
 import os
 import sys
+from logging import getLogger, StreamHandler
+from logging import INFO
 
 import requests
 from bs4 import BeautifulSoup
@@ -37,29 +39,44 @@ class DownloadAICPRom(object):
         else:
             self.remove = False
 
+        # set logger
+        self.logger = getLogger(__name__)
+        handler = StreamHandler()
+        handler.setLevel(INFO)
+        self.logger.setLevel(INFO)
+        self.logger.addHandler(handler)
+        self.logger.propagate = False
+
     def do_task(self):
         """Download AICP ROM"""
         if self.remove:
             self.remove_old_rom()
 
         if isinstance(self.device, str):
-            self.do_download_aicp_rom(self.device)
+            self.do_download_aicp_rom(self.device, logger=self.logger)
         elif isinstance(self.device, list):
             for device in self.device:
-                self.do_download_aicp_rom(device)
+                self.do_download_aicp_rom(device, logger=self.logger)
 
-    def do_download_aicp_rom(self, device):
+    def do_download_aicp_rom(self, device, logger=None):
         """Download AICP ROM for given device"""
-        download_url, checksum = self.get_aicp_rom_info(device)
-        print("URL: {u}".format(u=download_url))
-        print("checksum: {c}".format(c=checksum))
+        try:
+            download_url, checksum = self.get_aicp_rom_info(device)
+        except IndexError:
+            message = ("ROM for device {d} seems not to be provided on AICP. "
+                       "Skip.")
+            logger.error(message.format(d=device))
+            return
+
+        logger.info("URL: {u}".format(u=download_url))
+        logger.info("checksum: {c}".format(c=checksum))
         rom_location = self.download_aicp_rom(download_url,
                                               self.saved_to_dir)
         rom_location = self.verify_downloaded_aicp_rom(rom_location,
                                                        checksum)
         if rom_location:
-            msg = "ROM for device {d} downloaded successfully"
-            print(msg.format(d=device))
+            message = "ROM for device {d} downloaded successfully"
+            logger.info(message.format(d=device))
 
     # thanks for below 2 method to:
     # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
