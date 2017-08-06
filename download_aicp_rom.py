@@ -47,24 +47,27 @@ class DownloadAICPRom(object):
         self.logger.addHandler(handler)
         self.logger.propagate = False
 
-    def do_task(self):
+    def do_task(self, logger=None):
         """Download AICP ROM"""
         if self.remove:
             self.remove_old_rom()
 
-        if isinstance(self.device, str):
-            self.do_download_aicp_rom(self.device, logger=self.logger)
-        elif isinstance(self.device, list):
-            for device in self.device:
-                self.do_download_aicp_rom(device, logger=self.logger)
+        try:
+            if isinstance(self.device, str):
+                self.do_download_aicp_rom(self.device, logger=self.logger)
+            elif isinstance(self.device, list):
+                for device in self.device:
+                    self.do_download_aicp_rom(device, logger=self.logger)
+        except KeyboardInterrupt:
+            logger.info("Interrupted. Clean files in saved_to_dir")
+            self.remove_old_rom()
 
     def do_download_aicp_rom(self, device, logger=None):
         """Download AICP ROM for given device"""
         try:
             download_url, checksum = self.get_aicp_rom_info(device)
         except IndexError:
-            message = ("ROM for device {d} seems not to be provided on AICP. "
-                       "Skip.")
+            message = "ROM for device {d} seems not to be provided on AICP."
             logger.error(message.format(d=device))
             return
 
@@ -212,4 +215,4 @@ if __name__ == "__main__":
         sys.stderr.write(("Invalid or missing arguments. "
                           "Check help of this script\n"))
         sys.exit(errno.EINVAL)
-    WORKER.do_task()
+    WORKER.do_task(WORKER.logger)
