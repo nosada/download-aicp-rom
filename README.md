@@ -3,8 +3,8 @@ This is maybe useful when you download ROM for your device(s) from [AICP Downloa
 
 # Usage
 ```
-$ python download_aicp_rom.py -h
-usage: download_aicp_rom.py [-h] [--device-name DEVICE_NAME]
+$ python download-aicp-rom.py -h
+usage: download-aicp-rom.py [-h] [--device-name DEVICE_NAME]
                             [--saved-to-dir SAVED_TO_DIR] [--conf CONFIG]
 
 Download latest AICP ROM for given device to specified directory
